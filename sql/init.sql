@@ -57,6 +57,10 @@ CREATE TABLE IF NOT EXISTS `biz_document` (
   `summary` text COMMENT 'AI摘要',
   `analysis` json DEFAULT NULL COMMENT '结构化分析：研究问题/方法/创新点/结论/局限性',
   `analyzed` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否已完成AI分析',
+  `vector_status` tinyint NOT NULL DEFAULT 0 COMMENT '向量化状态：0-PENDING 1-PROCESSING 2-SUCCESS 3-FAILED',
+  `chunk_count` int NOT NULL DEFAULT 0 COMMENT '切片数量',
+  `embedding_count` int NOT NULL DEFAULT 0 COMMENT '已嵌入向量数量',
+  `vector_error_msg` varchar(500) NOT NULL DEFAULT '' COMMENT '向量化错误信息',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删 1-已删',
@@ -65,23 +69,30 @@ CREATE TABLE IF NOT EXISTS `biz_document` (
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档表';
 
--- ④ 文档切片表（向量检索核心表）
+-- ④ 文档切片与向量表（向量检索核心表；派生数据，重新处理/删除文档时物理清理重建）
 CREATE TABLE IF NOT EXISTS `biz_document_chunk` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+  `user_id` bigint unsigned NOT NULL DEFAULT 0 COMMENT '所属用户ID',
+  `chunk_uid` varchar(64) NOT NULL DEFAULT '' COMMENT '稳定唯一标识 SHA-256(documentId:chunkIndex:contentHash)',
   `doc_id` bigint unsigned NOT NULL COMMENT '所属文档',
   `kb_id` bigint unsigned NOT NULL COMMENT '所属知识库（冗余，检索免join）',
   `chunk_index` int NOT NULL DEFAULT 0 COMMENT '切片序号',
   `page_num` int NOT NULL DEFAULT 0 COMMENT '原文页码',
+  `source_position` varchar(64) NOT NULL DEFAULT '' COMMENT '原文位置 p{页}:{起}-{止}（清洗后全文字符偏移）',
   `content` text NOT NULL COMMENT '切片原文',
   `char_count` int NOT NULL DEFAULT 0 COMMENT '字符数',
-  `embedding` json DEFAULT NULL COMMENT '1024维向量，NULL=未向量化',
+  `embedding` json DEFAULT NULL COMMENT '向量JSON数组，NULL=未向量化',
+  `embedding_model` varchar(64) NOT NULL DEFAULT '' COMMENT 'Embedding 模型名称',
+  `embedding_dimension` int NOT NULL DEFAULT 0 COMMENT '向量维度',
+  `embedding_version` varchar(32) NOT NULL DEFAULT '' COMMENT '模型版本标识',
   `create_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
   `deleted` tinyint NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删 1-已删',
   PRIMARY KEY (`id`),
   KEY `idx_doc_id` (`doc_id`),
-  KEY `idx_kb_id` (`kb_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档切片表';
+  KEY `idx_kb_id` (`kb_id`),
+  KEY `idx_user_kb` (`user_id`, `kb_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文档切片与向量表';
 
 -- ⑤ 会话表
 CREATE TABLE IF NOT EXISTS `biz_conversation` (

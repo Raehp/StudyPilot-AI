@@ -2,7 +2,9 @@ package com.studypilot.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.studypilot.common.DocumentStatus;
+import com.studypilot.common.VectorStatus;
 import com.studypilot.entity.Document;
+import com.studypilot.mapper.DocumentChunkMapper;
 import com.studypilot.mapper.DocumentMapper;
 import com.studypilot.vo.DocumentContentVO;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +27,7 @@ import java.util.List;
 public class PdfParseService {
 
     private final DocumentMapper documentMapper;
+    private final DocumentChunkMapper documentChunkMapper;
     private final DocumentStorageService documentStorageService;
     private final ObjectMapper objectMapper;
     private final StringRedisTemplate stringRedisTemplate;
@@ -82,7 +85,13 @@ public class PdfParseService {
                 update.setCharCount(charCount);
                 update.setNeedOcr(needOcr ? 1 : 0);
                 update.setErrorMsg("");
+                // 重新解析后原文已变化：重置向量化状态并清理旧切片/向量
+                update.setVectorStatus(VectorStatus.PENDING.getCode());
+                update.setChunkCount(0);
+                update.setEmbeddingCount(0);
+                update.setVectorErrorMsg("");
                 documentMapper.updateById(update);
+                documentChunkMapper.physicalDeleteByDocId(documentId);
                 log.info("PDF 解析完成: docId={}, pages={}, chars={}, needOcr={}",
                         documentId, pageCount, charCount, needOcr);
             }

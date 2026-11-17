@@ -44,6 +44,15 @@ public class Document {
 
     private Integer analyzed;
 
+    /** 向量化状态：0-PENDING 1-PROCESSING 2-SUCCESS 3-FAILED */
+    private Integer vectorStatus;
+
+    private Integer chunkCount;
+
+    private Integer embeddingCount;
+
+    private String vectorErrorMsg;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

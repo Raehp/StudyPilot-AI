@@ -28,6 +28,15 @@ public class DocumentVO {
 
     private String errorMsg;
 
+    /** 向量化状态 PENDING / PROCESSING / SUCCESS / FAILED */
+    private String vectorStatus;
+
+    private Integer chunkCount;
+
+    private Integer embeddingCount;
+
+    private String vectorErrorMsg;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

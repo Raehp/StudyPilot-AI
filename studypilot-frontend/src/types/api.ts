@@ -53,6 +53,8 @@ export interface KnowledgeBaseDTO {
 
 export type DocumentStatus = 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED'
 
+export type VectorStatus = 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED'
+
 export interface DocumentVO {
   id: number
   kbId: number
@@ -64,8 +66,34 @@ export interface DocumentVO {
   needOcr: boolean
   status: DocumentStatus
   errorMsg: string
+  vectorStatus: VectorStatus
+  chunkCount: number
+  embeddingCount: number
+  vectorErrorMsg: string
   createTime: string
   updateTime: string
+}
+
+export interface VectorStatusVO {
+  documentId: number
+  /** null = 从未处理 */
+  status: VectorStatus | null
+  chunkCount: number
+  embeddingCount: number
+  progress: number
+  errorMsg: string
+  updateTime: string
+}
+
+export interface VectorSearchResultVO {
+  chunkId: number
+  chunkUid: string
+  documentId: number
+  documentTitle: string
+  content: string
+  pageNum: number
+  sourcePosition: string
+  score: number
 }
 
 export interface ParseStatusVO {

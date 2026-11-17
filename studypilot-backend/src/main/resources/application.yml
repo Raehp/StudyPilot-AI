@@ -79,9 +79,27 @@ studypilot:
     max-concurrent: 2
     segment-chars: 6000
     max-segments: 12
+  # M4 文本切片参数（集中配置）
+  chunk:
+    target-chars: 500
+    overlap-chars: 80
+    min-chunk-chars: 50
+    max-chunks-per-doc: 2000
+  # M4 DashScope Embedding（text-embedding-v3 / 1024 维 / 版本 v3）
+  # Key 仅从环境变量读取，绝不写入代码/Git/前端/日志；仅后端调用
+  embedding:
+    api-key: ${DASHSCOPE_API_KEY:}
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model: text-embedding-v3
+    dimension: 1024
+    version: v3
+    batch-size: 10
+    connect-timeout-ms: 10000
+    read-timeout-ms: 60000
+    max-concurrent: 2
 
 logging:
   level:
     com.studypilot: info
 
-# M4 预留：Embedding 使用 DashScope text-embedding-v3（1024 维），届时启用
+# M5 预留：RAG 问答将复用 M4 切片与向量检索能力

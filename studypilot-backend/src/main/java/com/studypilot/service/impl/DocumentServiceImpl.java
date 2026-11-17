@@ -6,9 +6,11 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.studypilot.common.DocumentStatus;
 import com.studypilot.common.PageResult;
 import com.studypilot.common.ResultCode;
+import com.studypilot.common.VectorStatus;
 import com.studypilot.entity.Document;
 import com.studypilot.entity.KnowledgeBase;
 import com.studypilot.exception.BusinessException;
+import com.studypilot.mapper.DocumentChunkMapper;
 import com.studypilot.mapper.DocumentMapper;
 import com.studypilot.mapper.KnowledgeBaseMapper;
 import com.studypilot.security.UserContext;
@@ -31,6 +33,7 @@ import java.util.List;
 public class DocumentServiceImpl implements DocumentService {
 
     private final DocumentMapper documentMapper;
+    private final DocumentChunkMapper documentChunkMapper;
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final KnowledgeBaseService knowledgeBaseService;
     private final DocumentStorageService documentStorageService;
@@ -108,6 +111,8 @@ public class DocumentServiceImpl implements DocumentService {
             throw new BusinessException(ResultCode.BAD_REQUEST, "文档正在解析中，请稍后再删除");
         }
         documentMapper.deleteById(id);
+        // 派生切片/向量物理清理，杜绝孤立记录
+        documentChunkMapper.physicalDeleteByDocId(id);
         if (doc.getKbId() != null && doc.getKbId() != 0) {
             adjustDocCount(doc.getKbId(), -1);
         }
@@ -141,6 +146,10 @@ public class DocumentServiceImpl implements DocumentService {
         vo.setNeedOcr(doc.getNeedOcr() != null && doc.getNeedOcr() == 1);
         vo.setStatus(DocumentStatus.fromCode(doc.getStatus()).getExternalName());
         vo.setErrorMsg(doc.getErrorMsg());
+        vo.setVectorStatus(VectorStatus.fromCode(doc.getVectorStatus()).getExternalName());
+        vo.setChunkCount(doc.getChunkCount() == null ? 0 : doc.getChunkCount());
+        vo.setEmbeddingCount(doc.getEmbeddingCount() == null ? 0 : doc.getEmbeddingCount());
+        vo.setVectorErrorMsg(doc.getVectorErrorMsg() == null ? "" : doc.getVectorErrorMsg());
         vo.setCreateTime(doc.getCreateTime());
         vo.setUpdateTime(doc.getUpdateTime());
         return vo;

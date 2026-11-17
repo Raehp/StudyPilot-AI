@@ -2,8 +2,8 @@
   <div class="knowledge">
     <PageHeader
       title="科研知识库"
-      subtitle="按课题组织文献，上传 PDF 自动解析全文；切片与向量检索将在 M4 开放"
-      milestone="M2"
+      subtitle="按课题组织文献，上传 PDF 自动解析全文；支持一键切片向量化与语义检索，RAG 问答将在 M5 开放"
+      milestone="M4"
     >
       <template #actions>
         <el-input
@@ -128,8 +128,33 @@
                 </div>
               </template>
             </el-table-column>
+            <el-table-column label="向量化" width="170">
+              <template #default="{ row }">
+                <el-tag :type="vectorTagType(row.vectorStatus)" effect="light" size="small">
+                  <el-icon v-if="row.vectorStatus === 'PROCESSING'" class="is-loading">
+                    <Loading />
+                  </el-icon>
+                  {{ vectorLabel(row.vectorStatus) }}
+                </el-tag>
+                <div
+                  v-if="row.vectorStatus === 'PROCESSING' || row.vectorStatus === 'SUCCESS'"
+                  class="vector-meta"
+                >
+                  {{ row.embeddingCount }}/{{ row.chunkCount }} 向量
+                  <span v-if="row.vectorStatus === 'PROCESSING'">
+                    · {{ vectorProgress(row) }}%
+                  </span>
+                </div>
+                <div
+                  v-if="row.vectorStatus === 'FAILED' && row.vectorErrorMsg"
+                  class="fail-reason"
+                >
+                  {{ row.vectorErrorMsg }}
+                </div>
+              </template>
+            </el-table-column>
             <el-table-column label="上传时间" width="160" prop="createTime" />
-            <el-table-column label="操作" width="230" fixed="right">
+            <el-table-column label="操作" width="300" fixed="right">
               <template #default="{ row }">
                 <el-button
                   link
@@ -148,6 +173,15 @@
                   @click="retryParse(row)"
                 >
                   重试解析
+                </el-button>
+                <el-button
+                  v-if="canVectorize(row)"
+                  link
+                  type="primary"
+                  size="small"
+                  @click="vectorize(row)"
+                >
+                  {{ row.vectorStatus === 'PENDING' ? '向量化' : '重新处理' }}
                 </el-button>
                 <el-button
                   v-if="selectedKbId === 0"
@@ -200,7 +234,7 @@
           v-else
           :icon="Collection"
           title="开始构建你的科研知识库"
-          description="创建一个知识库，上传论文 PDF，系统会自动解析全文并保留页码。切片向量化与 RAG 问答将在 M4/M5 开放。"
+          description="创建一个知识库，上传论文 PDF，系统会自动解析全文并保留页码，解析完成后可一键切片向量化。RAG 问答将在 M5 开放。"
         >
           <el-button type="primary" :icon="Plus" @click="openKbForm()">创建第一个知识库</el-button>
         </EmptyState>
@@ -315,7 +349,14 @@ import {
   triggerParse,
   uploadDocument
 } from '@/api/document'
-import type { DocumentContentVO, DocumentStatus, DocumentVO, KnowledgeBaseVO } from '@/types/api'
+import { getVectorStatus, vectorizeDocument } from '@/api/vector'
+import type {
+  DocumentContentVO,
+  DocumentStatus,
+  DocumentVO,
+  KnowledgeBaseVO,
+  VectorStatus
+} from '@/types/api'
 
 const MAX_SIZE_MB = 30
 
@@ -357,6 +398,7 @@ const previewLoading = ref(false)
 const previewContent = ref<DocumentContentVO | null>(null)
 
 let pollTimer: number | null = null
+let vectorPollTimer: number | null = null
 
 const filteredKbs = computed(() => {
   const keyword = kbSearch.value.trim().toLowerCase()
@@ -386,7 +428,10 @@ onMounted(async () => {
   }
 })
 
-onBeforeUnmount(() => stopPolling())
+onBeforeUnmount(() => {
+  stopPolling()
+  stopVectorPolling()
+})
 
 async function loadKbs() {
   kbLoading.value = true
@@ -415,6 +460,7 @@ async function loadDocs() {
     docs.value = result.records
     total.value = result.total
     schedulePolling()
+    scheduleVectorPolling()
   } catch {
     // 错误提示由 Axios 拦截器统一处理
   } finally {
@@ -461,6 +507,13 @@ async function pollParseStatus() {
       doc.charCount = status.charCount
       doc.needOcr = status.needOcr
       doc.errorMsg = status.errorMsg
+      if (status.status === 'SUCCESS') {
+        // 重新解析成功后后端会重置向量化状态并清理旧切片
+        doc.vectorStatus = 'PENDING'
+        doc.chunkCount = 0
+        doc.embeddingCount = 0
+        doc.vectorErrorMsg = ''
+      }
     } catch {
       // 单次轮询失败忽略，下一轮重试
     }
@@ -471,6 +524,104 @@ async function pollParseStatus() {
       loadKbs()
     }
   }
+}
+
+function scheduleVectorPolling() {
+  const processing = docs.value.some((d) => d.vectorStatus === 'PROCESSING')
+  if (processing && vectorPollTimer === null) {
+    vectorPollTimer = window.setInterval(pollVectorStatus, 3000)
+  } else if (!processing) {
+    stopVectorPolling()
+  }
+}
+
+function stopVectorPolling() {
+  if (vectorPollTimer !== null) {
+    window.clearInterval(vectorPollTimer)
+    vectorPollTimer = null
+  }
+}
+
+async function pollVectorStatus() {
+  const targets = docs.value.filter((d) => d.vectorStatus === 'PROCESSING')
+  if (targets.length === 0) {
+    stopVectorPolling()
+    return
+  }
+  for (const doc of targets) {
+    try {
+      const status = await getVectorStatus(doc.id)
+      if (status.status) {
+        doc.vectorStatus = status.status
+      }
+      doc.chunkCount = status.chunkCount
+      doc.embeddingCount = status.embeddingCount
+      doc.vectorErrorMsg = status.errorMsg ?? ''
+    } catch {
+      // 单次轮询失败忽略，下一轮重试
+    }
+  }
+  scheduleVectorPolling()
+}
+
+function canVectorize(doc: DocumentVO) {
+  return (
+    doc.status === 'SUCCESS' &&
+    !doc.needOcr &&
+    doc.charCount > 0 &&
+    doc.vectorStatus !== 'PROCESSING'
+  )
+}
+
+async function vectorize(doc: DocumentVO) {
+  const reprocess = doc.vectorStatus !== 'PENDING'
+  if (doc.vectorStatus === 'SUCCESS') {
+    try {
+      await ElMessageBox.confirm(
+        `「${doc.title}」已完成向量化。重新处理将删除现有 ${doc.chunkCount} 个切片与向量并重新生成，确定继续？`,
+        '重新向量化',
+        { type: 'warning', confirmButtonText: '重新处理', cancelButtonText: '取消' }
+      )
+    } catch {
+      return
+    }
+  }
+  try {
+    const status = await vectorizeDocument(doc.id, reprocess)
+    doc.vectorStatus = status.status ?? 'PROCESSING'
+    doc.chunkCount = status.chunkCount
+    doc.embeddingCount = status.embeddingCount
+    doc.vectorErrorMsg = status.errorMsg ?? ''
+    ElMessage.success('已加入向量化队列')
+    scheduleVectorPolling()
+  } catch {
+    // 错误提示由 Axios 拦截器统一处理
+  }
+}
+
+function vectorLabel(status: VectorStatus) {
+  const map: Record<VectorStatus, string> = {
+    PENDING: '未处理',
+    PROCESSING: '向量化中',
+    SUCCESS: '已就绪',
+    FAILED: '向量化失败'
+  }
+  return map[status]
+}
+
+function vectorTagType(status: VectorStatus) {
+  const map: Record<VectorStatus, 'info' | 'warning' | 'success' | 'danger'> = {
+    PENDING: 'info',
+    PROCESSING: 'warning',
+    SUCCESS: 'success',
+    FAILED: 'danger'
+  }
+  return map[status]
+}
+
+function vectorProgress(doc: DocumentVO) {
+  if (doc.chunkCount <= 0) return 0
+  return Math.min(100, Math.round((doc.embeddingCount / doc.chunkCount) * 100))
 }
 
 function beforeUpload(rawFile: File) {
@@ -850,6 +1001,12 @@ function formatSize(bytes: number) {
   color: var(--el-color-danger);
   margin-top: 4px;
   line-height: 1.4;
+}
+
+.vector-meta {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  margin-top: 4px;
 }
 
 .pager {

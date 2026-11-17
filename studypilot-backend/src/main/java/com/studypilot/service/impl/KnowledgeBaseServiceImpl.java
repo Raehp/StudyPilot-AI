@@ -8,6 +8,7 @@ import com.studypilot.dto.KnowledgeBaseUpdateDTO;
 import com.studypilot.entity.Document;
 import com.studypilot.entity.KnowledgeBase;
 import com.studypilot.exception.BusinessException;
+import com.studypilot.mapper.DocumentChunkMapper;
 import com.studypilot.mapper.DocumentMapper;
 import com.studypilot.mapper.KnowledgeBaseMapper;
 import com.studypilot.security.UserContext;
@@ -29,6 +30,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
 
     private final KnowledgeBaseMapper knowledgeBaseMapper;
     private final DocumentMapper documentMapper;
+    private final DocumentChunkMapper documentChunkMapper;
     private final DocumentStorageService documentStorageService;
 
     @Override
@@ -79,6 +81,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
             documentMapper.delete(new LambdaQueryWrapper<Document>()
                     .eq(Document::getKbId, id)
                     .eq(Document::getUserId, userId));
+            documentChunkMapper.physicalDeleteByKbId(id, userId);
         }
         knowledgeBaseMapper.deleteById(kb.getId());
         // 事务提交成功后再清理物理文件，回滚时文件不受影响
@@ -106,6 +109,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
                 .eq(Document::getId, documentId)
                 .eq(Document::getUserId, UserContext.getUserId())
                 .set(Document::getKbId, kbId));
+        documentChunkMapper.updateKbIdByDocId(documentId, kbId, UserContext.getUserId());
         adjustDocCount(kbId, 1);
     }
 
@@ -121,6 +125,7 @@ public class KnowledgeBaseServiceImpl implements KnowledgeBaseService {
                 .eq(Document::getId, documentId)
                 .eq(Document::getUserId, UserContext.getUserId())
                 .set(Document::getKbId, 0L));
+        documentChunkMapper.updateKbIdByDocId(documentId, 0L, UserContext.getUserId());
         adjustDocCount(kbId, -1);
     }
 
