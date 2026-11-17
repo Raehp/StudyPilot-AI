@@ -4,7 +4,7 @@
 范围：学习目标 CRUD → 通义千问异步生成学习阶段/每日任务（可结合指定知识库真实文档）→ 任务完成状态与进度管理（MySQL 持久化）；出题配置 → 基于知识库真实内容异步生成题目（结构化校验 + 引用真实性校验）→ 在线练习 → 客观题自动判分 + 简答题 AI 辅助评分（含评分依据）→ 练习记录持久化 → 历史成绩与错题回顾。
 **沿用 M4/M5 已验收的 MySQL JSON + Java 内存余弦检索与 DashScope 封装；未引入新表（仅 4 表 ALTER 增列）；未实现 M7 功能。**
 
-> 状态说明：M6 全部代码已实现并通过编译、前端类型检查与生产构建、46 项单元测试；非 AI 真实集成测试 10 项全部通过。**真实 AI 生成/判分的 9 项集成测试与浏览器端到端验证，因主后端（8080）仍运行 M5 代码、真实 `DASHSCOPE_API_KEY` 仅存于该进程环境而无法在当前会话恢复，暂处于「待密钥」状态——绝不以固定题目或模拟成绩冒充真实 AI。** 待主后端以 M6 代码 + 密钥重启后补全（见 §7）。
+> 状态说明：M6 全部代码已实现并通过编译、前端类型检查与生产构建、**46 项单元测试**、**29 项真实集成测试（PASS=29 / FAIL=0 / SKIP=1）**、**浏览器端到端验证（学习计划 + 智能出题全流程，零控制台报错）**。真实 `DASHSCOPE_API_KEY` 取自仓库外文件 `E:/AI-Qoder-Pro/.secrets/dashscope.key`，仅注入后端进程环境；**17 次真实 qwen-plus 调用（计划 8 / 出题 5 / 简答判分 4）全部成功，绝不以固定题目或模拟成绩冒充真实 AI**。验证过程中发现并修复 2 个真实异步缺陷（见 §7）。按里程碑门禁暂停，等待用户验收，不进入 M7。
 
 ---
 
@@ -73,6 +73,7 @@
 | `DashScopeClient`（扩展） | 新增 `chatJson(userId,bizType,system,user)` 重载，`log_ai_call` 记录 bizType |
 
 异步：`@Async("planQuizExecutor")`（core2/max2/queue50/AbortPolicy，前缀 `plan-quiz-gen-`）；`TaskRejectedException` → FAILED 终态；Redis 锁 TTL 15min 防重复生成。
+**异步触发方式**：`StudyPlanGenerator` / `QuizGenerator` 经 `ObjectProvider<Self>` 代理自调用 `generateAsync`，确保 `@Async` 生效（同类内直接调用会绕过 Spring 代理退化为同步，见 §7 缺陷①）；worker 线程入口 `UserContext.setUserId(userId)`、`finally` 中 `clear()`，保证检索所有权过滤可用（见 §7 缺陷②）。
 
 ## 4. 后端接口（JWT 走 Authorization 头，统一 `Result` 包装）
 
@@ -128,44 +129,100 @@
 | `ConversationHistoryTest` | 3 | 历史预算（M5 回归） |
 | `RagPromptBuilderTest` | 5 | 反伪造提示词（M5 回归） |
 
-合计 **46 项，Failures: 0，Errors: 0，Skipped: 0**。其中 M6 新增 21 项校验测试覆盖「结构化输出异常 / 不同题型答案校验」。
+合计 **46 项，Failures: 0，Errors: 0，Skipped: 0，BUILD SUCCESS**。其中 M6 新增 21 项校验测试覆盖「结构化输出异常 / 不同题型答案校验」。修复 §7 两个异步缺陷后重跑仍 46/46 全过。
 
-### 6.2 真实集成测试（`test-assets/m6-test.mjs`，直查 MySQL 断言）
+### 6.2 真实集成测试（`test-assets/m6-test.mjs`，M6 后端 8081 + 真实密钥，直查 MySQL 断言）
 
-非 AI 部分（M6 后端 8081 真实运行）— **10 项全过**：
+**结果：PASS=29 / FAIL=0 / SKIP=1。** 覆盖需求规定的学习计划 7 项 + 智能出题 8 项全部用例，AI 依赖项均以真实 qwen-plus 调用执行。
 
-| 编号 | 用例 | 结果 |
+学习计划（7 项必测）
+
+| 必测项 | 对应用例 | 结果 |
 |---|---|---|
-| P1/P1b | 正常创建学习目标 + 字段回显 | PASS |
-| P3 | 计划持久化到 MySQL（直查 + 重新 GET） | PASS |
-| P7 | 用户越权访问/修改/删除计划 → 404 | PASS |
-| P6 | AI 调用失败返回明确错误并落 FAILED 终态（`generate_status=3`） | PASS |
-| Q0/Q0b | 创建知识库 + 提交出题即时返回 | PASS |
-| Q0c | 出题失败落终态 | PASS |
-| Q8/Q8b | 用户数据隔离（越权 404、列表不泄漏、错题为空、归属正确） | PASS |
+| 正常创建学习目标 + 字段回显 | P1 / P1b | PASS |
+| 计划持久化到 MySQL（直查 + 重新 GET） | P3 | PASS |
+| AI 生成学习阶段/每日任务（含结合知识库真实文档） | P2 / P2b / P2c / P2d | PASS |
+| 任务完成状态修改（完成/取消） | P4 / P4b | PASS |
+| 计划进度计算 | P5 | PASS |
+| AI 失败返回明确错误并落 FAILED 终态 | P6 | SKIP（AI 可用时由 Q0c 真实空知识库失败终态覆盖；无密钥轮已 PASS） |
+| 用户越权 / 数据隔离 | P7 / P7b | PASS |
+| 生成请求即时返回（异步，<5000ms） | P0 | PASS |
 
-AI 依赖部分 — **9 项 SKIP（待密钥，绝不伪造）**：P2 AI 生成计划、P4 任务完成状态修改、P5 计划进度计算、Q1 正常生成题目、Q3 不同题型答案校验（真实题）、Q4 客观题自动判分、Q5 简答题 AI 评分、Q6 练习记录持久化、Q7 错题记录查询。
-脚本已内置自动探测：后端配置密钥后运行 `node m6-test.mjs http://localhost:8080/api` 即真实执行上述全部用例。
+智能出题（8 项必测）
 
-### 6.3 前端验证
+| 必测项 | 对应用例 | 结果 |
+|---|---|---|
+| 正常生成题目（真实 AI，全题型） | Q1 / Q1b | PASS |
+| 不同题型答案合法性校验（真实题） | Q3 | PASS |
+| 客观题自动判分（多选严格全对） | Q4 | PASS |
+| 简答题 AI 评分 + 评分依据 + 参考答案 | Q5 | PASS |
+| 练习记录持久化 | Q6 | PASS |
+| 错题记录查询 | Q7 | PASS |
+| 引用真实性 / 来源文档 / 练习隐藏答案 / 结果展示原文 | Q1c / Q1d / Q1e / Q1f | PASS |
+| 失败落终态 / 用户数据隔离 | Q0c / Q8 / Q8b | PASS |
+| 提交出题即时返回（异步，<5000ms） | Q0 / Q0b | PASS |
 
-- `vue-tsc` 类型检查：通过（修复 PlanView `@change` 隐式 any）。
-- 生产构建：通过（PlanView 15.92kB、QuizView 16.10kB）。
-- 浏览器端到端：待主后端以 M6 代码 + 密钥重启后验证（前端 `/api` 代理指向 8080）。
+> P6 在「AI 可用」轮被脚本自动 SKIP：该用例验证「AI 不可用→FAILED 终态」，AI 可用时由 Q0c（真实空知识库检索为空→`generate_status=3` 终态）等价覆盖；此前无密钥轮 P6 已真实 PASS。其余 29 项全部真实执行通过。
 
-## 7. 已知问题 / 待办
+### 6.3 真实 AI 调用统计（`log_ai_call`，biz_type 4/5/6，全部 status=0 成功）
 
-1. **真实 AI 验证待密钥（阻塞项）**：真实 `DASHSCOPE_API_KEY` 仅存于运行 M5 代码的主后端进程（PID 136808，端口 8080）环境中；当前会话无法从文件/转录/持久环境变量恢复，且不得终止该进程（会永久丢失密钥）。需用户以 M6 代码 + 密钥重启主后端（8080），随后补全 §6.2 的 9 项 AI 集成测试与浏览器端到端验证。
-2. **密钥轮换**：M3 起聊天中暴露过的 DashScope API Key 仍建议轮换（后端环境变量更新即可，前端/Git 不含密钥）。
-3. `application.yml` 既有 `rag:` 块缩进位于 `logging:` 下（M5 遗留，默认值恰好一致），非 M6 范围，未改动。
-4. M1 遗留 11 表注释 mojibake 修复待批准，非 M6 范围。
+| biz_type | 用途 | 调用数 | 成功 | 平均耗时 | 最大耗时 | prompt tokens | completion tokens |
+|---|---|---|---|---|---|---|---|
+| 4 | 学习计划生成 | 8 | 8 | 47.5s | 53.6s | 4,644 | 17,105 |
+| 5 | 智能出题 | 5 | 5 | 20.6s | 23.2s | 5,267 | 4,587 |
+| 6 | 简答题 AI 判分 | 4 | 4 | 2.3s | 2.55s | 1,380 | 346 |
+| 合计 | — | **17** | **17** | — | — | **11,291** | **22,038** |
 
-## 8. 交付物清单
+计划/出题耗时较长（数十秒）正是必须异步化的原因：同步执行会超过前端 axios 15s 超时（见 §7 缺陷①）。所有调用均记录 `log_ai_call`，不含密钥。
+
+### 6.4 浏览器端到端验证（前端 5174 → 后端 8081 真实密钥，修复后重测）
+
+**智能出题全流程（零控制台报错）：**
+- 配置知识库「深度学习论文库 v2」+ 主题「联邦学习」+ 5 题 + 基础 + 全 4 题型 → 点击「生成测验」。
+- **`POST /api/quizzes/generate` 实测 200 / 39ms 即时返回**（修复前同步阻塞约 18–46s，触发前端「请求超时」）；toast「已加入 AI 出题队列」→ 进度弹窗「AI 正在基于知识库出题…」→ 列表「生成中」。
+- 轮询至「已生成」自动进入练习；5 道真实题目（单选/多选/判断/简答）均基于《FedLite》论文真实内容。
+- 作答后「交卷」→ 客观题自动判分 + 简答 AI 评分：**综合得分 80，答对 4/5**（单选 C=100、多选 A,B 严格全对=100、判断 A=100、简答=100 且附真实「AI 评分依据」、单选错答 A=0）。
+- 「查看原文片段」弹层展示真实检索原文（"1. Introduction … Federated learning (FL) trains a shared model by ex…"），引用真实性可见。
+- 「错题回顾」标签即时收录本次错题（本题 0 分 / 你的答案 A / 正确答案 B / 解析 / 来源《paper》· 知识点），由查询导出、无新表。
+
+**学习计划全流程（零控制台报错）：**
+- 知识库绑定计划「M6真实知识库计划」渲染 14 项逐日任务 / 5 阶段，每任务含阶段、重点、推荐《paper》具体章节、阶段测验标记、AI 总体建议，均真实 grounded。
+- 任务打卡：勾选首项 → 进度 **0/14 → 1/14**；取消勾选 → **1/14 → 0/14**（完成/取消 + 进度重算均生效）。
+- 「重新生成」→ 确认弹窗「将覆盖当前任务清单与打卡进度」→ **`POST /api/study-plans/9/generate` 实测 200 / 18ms 即时返回** → 轮询至 SUCCESS → 替换为 14 项全新任务（本次 4 阶段、AI 建议措辞更新，仍真实引用《FedLite》），进度归零。
+
+### 6.5 前端构建验证
+
+- `vue-tsc --noEmit` 类型检查：通过（无错误）。
+- `vite build` 生产构建：通过，2282 modules transformed，built in 11.10s；`PlanView` 15.92kB、`QuizView` 16.10kB。
+
+## 7. 验证中发现并修复的真实缺陷
+
+**缺陷① `@Async` 同类自调用退化为同步（阻塞 HTTP 线程 → 前端超时）**
+- 现象：浏览器点击「生成测验/生成计划」后请求长时间挂起，最终前端 axios 15s 超时报「请求超时」；`POST …/generate` 实测阻塞约 18–46s。
+- 根因：`QuizGenerator.submit` / `StudyPlanGenerator.submit` 直接调用本类 `generateAsync(...)`，绕过 Spring AOP 代理，`@Async` 不生效，生成在 HTTP 请求线程同步执行。
+- 修复：注入 `ObjectProvider<Self>`，经 `self.getObject().generateAsync(...)` 代理自调用触发异步（`ObjectProvider` 延迟解析避免循环依赖）。
+- 验证：修复后浏览器实测出题 generate **39ms**、计划 generate **18ms** 即时返回；集成测试新增 P0 / Q0b 异步即时返回断言（<5000ms）PASS。与 M4 `DocumentVectorExecutor` 同类缺陷一致。
+
+**缺陷② 异步 worker 线程缺失 `UserContext` 导致检索所有权过滤失败**
+- 现象：缺陷①修复后真正异步执行时，结合知识库的生成报「知识库不存在」。
+- 根因：`UserContext` 为 `ThreadLocal`，不随 `@Async` 传播到 worker 线程；`DocumentVectorService.search` 依 `UserContext.getUserId()` 做所有权过滤，worker 上为 null。
+- 修复：`generateAsync` 入口 `UserContext.setUserId(userId)`，`finally` 中 `UserContext.clear()`（两个生成器一致）。
+- 验证：P2d（计划结合知识库真实文档）、Q1（真实出题）及浏览器计划/出题全流程均真实 grounded 成功。
+
+## 8. 已知问题 / 待办
+
+1. **密钥轮换**：M3 起聊天中暴露过的 DashScope API Key 仍建议轮换（后端环境变量更新即可，前端/Git 不含密钥）。当前真实密钥取自仓库外 `E:/AI-Qoder-Pro/.secrets/dashscope.key`。
+2. `application.yml` 既有 `rag:` 块缩进位于 `logging:` 下（M5 遗留，默认值恰好一致），非 M6 范围，未改动。
+3. M1 遗留 11 表注释 mojibake 修复待批准，非 M6 范围。
+4. 计划/出题单次生成耗时数十秒（真实大模型 + 检索），已异步化 + 轮询 + Redis 防重锁；线程池 core2/max2/queue50，超出并发以 `TaskRejectedException` → FAILED 终态明确提示「生成任务繁忙」。
+
+## 9. 交付物清单
 
 - 迁移：`sql/migration-m6.sql`（已执行）、`sql/init.sql`（同步）。
 - 后端：实体/Mapper ×4、`GenerateStatus`、`PlanProperties`/`QuizProperties`、DTO/VO、`PlanPromptBuilder`/`QuizPromptBuilder`、`AiOutputParser`/`PlanOutputValidator`/`QuizOutputValidator`、`StudyPlanService`/`StudyTaskService`/`StudyPlanGenerator`、`QuizStoreService`/`QuizGenerator`/`QuizScoringService`/`QuizService`、3 控制器、`AsyncConfig` 线程池、`DashScopeClient` 扩展。
 - 前端：`types/api.ts`、`api/plan.ts`、`api/quiz.ts`、`views/plan/PlanView.vue`、`views/quiz/QuizView.vue`。
 - 测试：`QuizOutputValidatorTest`/`PlanOutputValidatorTest`、`test-assets/m6-test.mjs`。
+- 缺陷修复：`StudyPlanGenerator` / `QuizGenerator`（`ObjectProvider` 代理自调用 + `UserContext` 传播）。
 - 报告：本文件。
 
-**M6 实现完成；按里程碑门禁暂停，等待用户确认（含密钥恢复以补全真实 AI 验证），不进入 M7。**
+**M6 实现完成，全部真实测试与浏览器端到端验证通过；按里程碑门禁暂停，等待用户验收，不进入 M7。**

@@ -13,6 +13,7 @@ import com.studypilot.vo.QuizGenerateResult;
 import com.studypilot.vo.VectorSearchResultVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -43,6 +44,8 @@ public class QuizGenerator {
     private final QuizOutputValidator quizOutputValidator;
     private final QuizProperties quizProperties;
     private final StringRedisTemplate stringRedisTemplate;
+    // 通过代理自调用触发 @Async，避免同类内直接调用导致同步执行阻塞 HTTP 线程
+    private final ObjectProvider<QuizGenerator> self;
 
     public GenerateStatusVO submit(Long quizId) {
         Quiz quiz = quizStoreService.getOwned(quizId);
@@ -56,7 +59,7 @@ public class QuizGenerator {
         }
         quizStoreService.setGenerating(quizId);
         try {
-            generateAsync(quizId, UserContext.getUserId(), lockKey);
+            self.getObject().generateAsync(quizId, UserContext.getUserId(), lockKey);
         } catch (TaskRejectedException e) {
             quizStoreService.markFailed(quizId, "生成任务繁忙，请稍后重试");
             stringRedisTemplate.delete(lockKey);
@@ -73,6 +76,7 @@ public class QuizGenerator {
     @Async("planQuizExecutor")
     public void generateAsync(Long quizId, Long userId, String lockKey) {
         long start = System.currentTimeMillis();
+        UserContext.setUserId(userId);
         try {
             Quiz quiz = quizMapper.selectById(quizId);
             if (quiz == null || GenerateStatus.fromCode(quiz.getGenerateStatus()) != GenerateStatus.GENERATING) {
@@ -106,6 +110,7 @@ public class QuizGenerator {
             quizStoreService.markFailed(quizId, "AI 出题失败，请稍后重试");
         } finally {
             stringRedisTemplate.delete(lockKey);
+            UserContext.clear();
         }
     }
 

@@ -14,6 +14,7 @@ import com.studypilot.vo.StudyPlanGenerateResult;
 import com.studypilot.vo.VectorSearchResultVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
@@ -44,6 +45,8 @@ public class StudyPlanGenerator {
     private final PlanOutputValidator planOutputValidator;
     private final PlanProperties planProperties;
     private final StringRedisTemplate stringRedisTemplate;
+    // 通过代理自调用触发 @Async，避免同类内直接调用导致同步执行阻塞 HTTP 线程
+    private final ObjectProvider<StudyPlanGenerator> self;
 
     public GenerateStatusVO submit(Long planId) {
         StudyPlan plan = studyPlanService.getOwned(planId);
@@ -60,7 +63,7 @@ public class StudyPlanGenerator {
                 .set(StudyPlan::getGenerateStatus, GenerateStatus.GENERATING.getCode())
                 .set(StudyPlan::getGenerateError, ""));
         try {
-            generateAsync(planId, UserContext.getUserId(), lockKey);
+            self.getObject().generateAsync(planId, UserContext.getUserId(), lockKey);
         } catch (TaskRejectedException e) {
             studyPlanService.markGenerateFailed(planId, "生成任务繁忙，请稍后重试");
             stringRedisTemplate.delete(lockKey);
@@ -77,6 +80,7 @@ public class StudyPlanGenerator {
     @Async("planQuizExecutor")
     public void generateAsync(Long planId, Long userId, String lockKey) {
         long start = System.currentTimeMillis();
+        UserContext.setUserId(userId);
         try {
             StudyPlan plan = studyPlanMapper.selectById(planId);
             if (plan == null || GenerateStatus.fromCode(plan.getGenerateStatus()) != GenerateStatus.GENERATING) {
@@ -108,6 +112,7 @@ public class StudyPlanGenerator {
             studyPlanService.markGenerateFailed(planId, "AI 生成失败，请稍后重试");
         } finally {
             stringRedisTemplate.delete(lockKey);
+            UserContext.clear();
         }
     }
 
