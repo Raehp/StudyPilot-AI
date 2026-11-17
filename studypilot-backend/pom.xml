@@ -89,13 +89,10 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Spring AI 预留集成位置（M3 接入 DashScope 时启用）
-        <dependency>
-            <groupId>com.alibaba.cloud.ai</groupId>
-            <artifactId>spring-ai-alibaba-starter</artifactId>
-            <version>1.0.0-M3.2</version>
-        </dependency>
-        -->
+        <!-- M3 AI 接入说明：Spring AI Alibaba GA（1.0.x+）要求 Spring Boot 3.4+，
+             与本项目锁定的 3.3.5 不兼容；按规格采用封装后端服务方案
+             （DashScopeClient 使用 spring-web 自带 RestClient 直连 DashScope
+             OpenAI 兼容端点），零新增依赖。 -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

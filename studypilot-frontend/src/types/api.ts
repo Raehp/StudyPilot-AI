@@ -91,3 +91,45 @@ export interface DocumentContentVO {
   needOcr: boolean
   pages: PageText[]
 }
+export type AnalysisStatus = 'PENDING' | 'PROCESSING' | 'SUCCESS' | 'FAILED'
+
+export interface PaperAnalysisResult {
+  title: string
+  abstract: string
+  background: string
+  researchQuestion: string
+  methods: string
+  technicalRoute: string
+  innovations: string
+  experimentDesign: string
+  experimentResults: string
+  conclusion: string
+  limitations: string
+  futureWork: string
+}
+
+export interface AnalysisStatusVO {
+  analysisId: number | null
+  documentId: number
+  status: AnalysisStatus | null
+  model: string | null
+  errorMsg: string | null
+  durationMs: number | null
+  segmentCount: number | null
+  createTime: string | null
+  updateTime: string | null
+}
+
+export interface PaperAnalysisVO {
+  analysisId: number
+  documentId: number
+  documentTitle: string
+  model: string
+  status: AnalysisStatus
+  result: PaperAnalysisResult
+  summary: string
+  durationMs: number
+  segmentCount: number
+  createTime: string
+  updateTime: string
+}

@@ -67,19 +67,21 @@ studypilot:
   storage:
     upload-dir: ${STORAGE_DIR:./data/uploads}
     max-size-mb: 30
+  # M3 通义千问接入（封装 RestClient 直连 DashScope OpenAI 兼容端点）
+  # Spring AI Alibaba GA 需 Boot 3.4+，与本项目 3.3.5 不兼容，故不引入 Spring AI 依赖
+  # API Key 仅从环境变量读取，绝不写入代码/Git/前端/日志
+  ai:
+    api-key: ${DASHSCOPE_API_KEY:}
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model: qwen-plus
+    connect-timeout-ms: 10000
+    read-timeout-ms: 120000
+    max-concurrent: 2
+    segment-chars: 6000
+    max-segments: 12
 
 logging:
   level:
     com.studypilot: info
 
-# Spring AI / DashScope 预留配置（M3 接入时启用，Key 仅从环境变量读取）
-# spring:
-#   ai:
-#     dashscope:
-#       api-key: ${DASHSCOPE_API_KEY}
-#       chat:
-#         options:
-#           model: qwen-plus
-#       embedding:
-#         options:
-#           model: text-embedding-v3
+# M4 预留：Embedding 使用 DashScope text-embedding-v3（1024 维），届时启用
