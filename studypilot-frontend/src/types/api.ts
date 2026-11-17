@@ -377,3 +377,80 @@ export interface QuizGenerateDTO {
 export interface QuizSubmitDTO {
   answers: { questionId: number; answer: string }[]
 }
+
+export interface StatItemVO {
+  label: string
+  value: number
+}
+
+export interface TrendItemVO {
+  date: string
+  count: number
+}
+
+export interface DashboardOverviewVO {
+  documentTotal: number
+  knowledgeBaseTotal: number
+  parsedDocumentTotal: number
+  vectorizedDocumentTotal: number
+  conversationTotal: number
+  studyPlanTotal: number
+  completedTaskTotal: number
+  totalTaskCount: number
+  quizPracticeTotal: number
+  learningProgress: number
+}
+
+export interface DocumentStatisticsVO {
+  total: number
+  parsed: number
+  vectorized: number
+  parseFailed: number
+  pending: number
+  parseStatusDistribution: StatItemVO[]
+  vectorStatusDistribution: StatItemVO[]
+  uploadTrend: TrendItemVO[]
+}
+
+export interface PlanProgressVO {
+  planId: number
+  title: string
+  progress: number
+  total: number
+  completed: number
+}
+
+export interface ActivityTrendVO {
+  dates: string[]
+  documents: number[]
+  tasks: number[]
+  quizzes: number[]
+  conversations: number[]
+}
+
+export interface LearningStatisticsVO {
+  planTotal: number
+  taskTotal: number
+  completedTaskTotal: number
+  avgProgress: number
+  planProgressList: PlanProgressVO[]
+  completionTrend: TrendItemVO[]
+  activityTrend: ActivityTrendVO
+}
+
+export interface RecentScoreVO {
+  quizId: number
+  title: string
+  score: number
+  createTime: string
+}
+
+export interface QuizStatisticsVO {
+  quizTotal: number
+  practicedTotal: number
+  avgScore: number
+  scoreDistribution: StatItemVO[]
+  questionTypeDistribution: StatItemVO[]
+  practiceTrend: TrendItemVO[]
+  recentScores: RecentScoreVO[]
+}

@@ -67,6 +67,13 @@ studypilot:
   storage:
     upload-dir: ${STORAGE_DIR:./data/uploads}
     max-size-mb: 30
+  # M7 接口频率限制（Redis 固定窗口，按 IP+路由桶；仅 POST 写操作限流）
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    window-seconds: 60
+    auth-limit: 10
+    ai-limit: 30
+    upload-limit: 30
   # M3 通义千问接入（封装 RestClient 直连 DashScope OpenAI 兼容端点）
   # Spring AI Alibaba GA 需 Boot 3.4+，与本项目 3.3.5 不兼容，故不引入 Spring AI 依赖
   # API Key 仅从环境变量读取，绝不写入代码/Git/前端/日志

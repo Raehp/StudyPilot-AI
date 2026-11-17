@@ -26,7 +26,7 @@
           <span class="info-value">{{ userStore.userInfo?.createTime }}</span>
         </div>
         <div class="panel-note">
-          资料修改接口将在后续里程碑开放，当前展示来自 /users/me 的真实数据。
+          资料修改功能暂未开放，当前展示来自 /users/me 的真实数据。
         </div>
       </div>
 

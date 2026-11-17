@@ -3,7 +3,6 @@
     <PageHeader
       title="学习计划"
       subtitle="设定学习目标与周期，通义千问生成逐日任务清单，支持打卡与进度追踪"
-      milestone="M6"
     >
       <template #actions>
         <el-button type="primary" :icon="Plus" @click="openCreate">新建计划</el-button>

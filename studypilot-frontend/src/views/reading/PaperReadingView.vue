@@ -3,7 +3,6 @@
     <PageHeader
       title="论文阅读"
       subtitle="选择已解析成功的论文，AI 自动生成摘要与 12 项结构化分析（通义千问）"
-      milestone="M3"
     />
     <div class="reading-grid">
       <!-- 左：论文列表 -->

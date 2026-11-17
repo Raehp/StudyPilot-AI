@@ -1,0 +1,108 @@
+# StudyPilot AI —— 比赛交付 Docker Compose 编排
+# 服务：MySQL 8 + Redis 7 + Spring Boot 后端 + Vue/Nginx 前端
+# 密钥/密码全部来自 .env（不提交 Git）；数据与上传文件使用持久化卷。
+# 启动：docker compose up -d --build   停止：docker compose down   查看日志：docker compose logs -f backend
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: studypilot-mysql
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD 必须在 .env 设置}
+      MYSQL_DATABASE: studypilot
+      MYSQL_USER: ${MYSQL_USERNAME:-studypilot}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD 必须在 .env 设置}
+      TZ: Asia/Shanghai
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # 全新部署仅执行 init.sql（已含 M1–M6 完整 schema）；迁移脚本为历史增量，勿在此重复执行
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - studypilot-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: studypilot-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - studypilot-net
+
+  backend:
+    build:
+      context: ./studypilot-backend
+    image: studypilot-backend:latest
+    container_name: studypilot-backend
+    restart: unless-stopped
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: studypilot
+      MYSQL_USERNAME: ${MYSQL_USERNAME:-studypilot}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD 必须在 .env 设置}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      # 生产必须覆盖默认开发密钥（安全检查 F3）
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 必须在 .env 设置为强随机值}
+      DASHSCOPE_API_KEY: ${DASHSCOPE_API_KEY:?DASHSCOPE_API_KEY 必须在 .env 设置}
+      STORAGE_DIR: /app/data/uploads
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-true}
+      TZ: Asia/Shanghai
+      JAVA_OPTS: ${JAVA_OPTS:--Xms256m -Xmx512m}
+    volumes:
+      - uploads-data:/app/data/uploads
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    networks:
+      - studypilot-net
+
+  frontend:
+    build:
+      context: ./studypilot-frontend
+    image: studypilot-frontend:latest
+    container_name: studypilot-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - studypilot-net
+
+volumes:
+  mysql-data:
+  redis-data:
+  uploads-data:
+
+networks:
+  studypilot-net:
+    driver: bridge

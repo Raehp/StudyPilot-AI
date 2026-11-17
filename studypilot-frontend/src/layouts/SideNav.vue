@@ -18,7 +18,6 @@
       >
         <el-icon :size="17"><component :is="item.icon" /></el-icon>
         <span class="nav-label">{{ item.label }}</span>
-        <span v-if="item.stage" class="nav-stage">{{ item.stage }}</span>
       </router-link>
     </nav>
 
@@ -45,13 +44,13 @@ import {
 const route = useRoute()
 const emit = defineEmits<{ navigate: [] }>()
 
-const items: { path: string; label: string; icon: Component; stage?: string }[] = [
+const items: { path: string; label: string; icon: Component }[] = [
   { path: '/', label: '工作台', icon: Odometer },
-  { path: '/reading', label: '论文阅读', icon: Reading, stage: 'M2' },
-  { path: '/knowledge', label: '科研知识库', icon: Collection, stage: 'M2' },
-  { path: '/chat', label: 'AI 智能问答', icon: ChatDotRound, stage: 'M5' },
-  { path: '/plan', label: '学习计划', icon: Calendar, stage: 'M6' },
-  { path: '/quiz', label: '智能出题', icon: EditPen, stage: 'M6' },
+  { path: '/reading', label: '论文阅读', icon: Reading },
+  { path: '/knowledge', label: '科研知识库', icon: Collection },
+  { path: '/chat', label: 'AI 智能问答', icon: ChatDotRound },
+  { path: '/plan', label: '学习计划', icon: Calendar },
+  { path: '/quiz', label: '智能出题', icon: EditPen },
   { path: '/settings', label: '个人设置', icon: Setting }
 ]
 </script>
@@ -124,21 +123,6 @@ const items: { path: string; label: string; icon: Component; stage?: string }[] 
 
 .nav-label {
   flex: 1;
-}
-
-.nav-stage {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 999px;
-  background: var(--sp-surface);
-  border: 1px solid var(--sp-border);
-  color: var(--sp-text-3);
-}
-
-.nav-item.active .nav-stage {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: transparent;
-  color: #fff;
 }
 
 .sidenav-footer {

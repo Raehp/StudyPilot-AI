@@ -2,8 +2,7 @@
   <div class="knowledge">
     <PageHeader
       title="科研知识库"
-      subtitle="按课题组织文献，上传 PDF 自动解析全文；支持一键切片向量化与语义检索，RAG 问答将在 M5 开放"
-      milestone="M4"
+      subtitle="按课题组织文献，上传 PDF 自动解析全文；支持一键切片向量化与语义检索，并可在 AI 智能问答中基于知识库进行 RAG 问答"
     >
       <template #actions>
         <el-input
@@ -234,7 +233,7 @@
           v-else
           :icon="Collection"
           title="开始构建你的科研知识库"
-          description="创建一个知识库，上传论文 PDF，系统会自动解析全文并保留页码，解析完成后可一键切片向量化。RAG 问答将在 M5 开放。"
+          description="创建一个知识库，上传论文 PDF，系统会自动解析全文并保留页码，解析完成后可一键切片向量化，并在 AI 智能问答中基于知识库进行 RAG 问答。"
         >
           <el-button type="primary" :icon="Plus" @click="openKbForm()">创建第一个知识库</el-button>
         </EmptyState>

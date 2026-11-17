@@ -5,7 +5,6 @@
       <p v-if="subtitle">{{ subtitle }}</p>
     </div>
     <div class="header-actions">
-      <el-tag v-if="milestone" effect="light" round type="primary">{{ milestone }}</el-tag>
       <slot name="actions" />
     </div>
   </div>
@@ -15,7 +14,6 @@
 defineProps<{
   title: string
   subtitle?: string
-  milestone?: string
 }>()
 </script>
 

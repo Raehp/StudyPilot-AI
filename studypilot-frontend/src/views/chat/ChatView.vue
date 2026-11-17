@@ -3,7 +3,6 @@
     <PageHeader
       title="AI 智能问答"
       subtitle="基于知识库的 RAG 多轮问答，回答附带引用文档与原文片段"
-      milestone="M5"
     />
     <div class="chat-grid">
       <div class="sessions glass">

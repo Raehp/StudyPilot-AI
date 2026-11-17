@@ -3,7 +3,6 @@
     <PageHeader
       title="智能出题"
       subtitle="基于知识库真实内容，通义千问生成单选/多选/判断/简答题，在线练习与 AI 判分"
-      milestone="M6"
     >
       <template #actions>
         <el-button type="primary" :icon="MagicStick" @click="openGenerate">AI 出题</el-button>

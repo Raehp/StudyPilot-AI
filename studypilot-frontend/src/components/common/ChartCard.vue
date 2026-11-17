@@ -36,7 +36,7 @@ const props = withDefaults(
     emptyText?: string
     option?: EChartsOption | null
   }>(),
-  { empty: true, emptyText: '数据接口将在后续里程碑接入', option: null }
+  { empty: true, emptyText: '暂无数据', option: null }
 )
 
 const chartRef = ref<HTMLDivElement>()
@@ -44,10 +44,16 @@ let chart: echarts.ECharts | null = null
 
 function render() {
   if (props.empty || !props.option || !chartRef.value) return
+  // v-show 切换可见性后 DOM 才有尺寸；尺寸为 0 时延到下一帧，避免 ECharts 0 宽高告警
+  if (chartRef.value.clientWidth === 0 || chartRef.value.clientHeight === 0) {
+    requestAnimationFrame(render)
+    return
+  }
   if (!chart) {
     chart = echarts.init(chartRef.value)
   }
   chart.setOption(props.option)
+  chart.resize()
 }
 
 function resize() {
@@ -59,7 +65,7 @@ onMounted(() => {
   window.addEventListener('resize', resize)
 })
 
-watch(() => [props.empty, props.option], render, { deep: true })
+watch(() => [props.empty, props.option], render, { deep: true, flush: 'post' })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', resize)
