@@ -1,0 +1,33 @@
+# ---- Java / Maven ----
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+application-local.yml
+
+# ---- Node / Frontend ----
+node_modules/
+dist/
+.npm-cache/
+*.local
+
+# ---- Environment & secrets (never commit) ----
+.env
+.env.*
+!.env.example
+
+# ---- Logs ----
+logs/
+*.log
+npm-debug.log*
+
+# ---- IDE / Editor ----
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# ---- OS ----
+.DS_Store
+Thumbs.db

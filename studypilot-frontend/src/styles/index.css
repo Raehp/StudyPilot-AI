@@ -1,0 +1,130 @@
+:root {
+  --sp-primary: #007aff;
+  --sp-primary-2: #5e5ce6;
+  --sp-grad: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 100%);
+  --sp-bg: #f2f2f7;
+  --sp-surface: rgba(255, 255, 255, 0.72);
+  --sp-surface-solid: #ffffff;
+  --sp-sidebar: rgba(255, 255, 255, 0.6);
+  --sp-border: rgba(0, 0, 0, 0.06);
+  --sp-text: #1c1c1e;
+  --sp-text-2: #6e6e73;
+  --sp-text-3: #aeaeb2;
+  --sp-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --sp-radius: 18px;
+  --sp-radius-sm: 12px;
+  --sp-blur: saturate(180%) blur(20px);
+  --sp-aurora-opacity: 0.5;
+}
+
+html.dark {
+  --sp-primary: #0a84ff;
+  --sp-primary-2: #5e5ce6;
+  --sp-grad: linear-gradient(135deg, #0a84ff 0%, #5e5ce6 100%);
+  --sp-bg: #000000;
+  --sp-surface: rgba(28, 28, 30, 0.72);
+  --sp-surface-solid: #1c1c1e;
+  --sp-sidebar: rgba(22, 22, 24, 0.6);
+  --sp-border: rgba(255, 255, 255, 0.08);
+  --sp-text: #f5f5f7;
+  --sp-text-2: #98989d;
+  --sp-text-3: #636366;
+  --sp-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --sp-aurora-opacity: 0.22;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue',
+    'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background: var(--sp-bg);
+  color: var(--sp-text);
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* 极光渐变背景（iOS 风格氛围光） */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(600px 400px at 12% -8%, rgba(10, 132, 255, 0.35), transparent 65%),
+    radial-gradient(700px 500px at 88% 12%, rgba(94, 92, 230, 0.3), transparent 65%),
+    radial-gradient(600px 480px at 55% 108%, rgba(100, 210, 255, 0.28), transparent 65%);
+  opacity: var(--sp-aurora-opacity);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+.glass {
+  background: var(--sp-surface);
+  backdrop-filter: var(--sp-blur);
+  -webkit-backdrop-filter: var(--sp-blur);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius);
+  box-shadow: var(--sp-shadow);
+}
+
+.sp-card {
+  background: var(--sp-surface);
+  backdrop-filter: var(--sp-blur);
+  -webkit-backdrop-filter: var(--sp-blur);
+  border: 1px solid var(--sp-border);
+  border-radius: var(--sp-radius);
+  box-shadow: var(--sp-shadow);
+}
+
+/* Element Plus iOS 化覆写 */
+.el-button--primary {
+  background: var(--sp-grad);
+  border: none;
+  border-radius: var(--sp-radius-sm);
+  font-weight: 600;
+}
+
+.el-button--primary:hover,
+.el-button--primary:focus {
+  background: var(--sp-grad);
+  opacity: 0.88;
+}
+
+.el-button--primary.is-disabled {
+  background: var(--sp-grad);
+  opacity: 0.4;
+}
+
+.el-input__wrapper,
+.el-textarea__inner {
+  border-radius: var(--sp-radius-sm);
+}
+
+.el-tag {
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--sp-text-3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
