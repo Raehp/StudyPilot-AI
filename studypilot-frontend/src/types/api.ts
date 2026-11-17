@@ -201,3 +201,179 @@ export interface ChatStreamMeta {
   retrievalCount: number
   citations: CitationVO[]
 }
+
+export type GenerateStatus = 'NONE' | 'GENERATING' | 'SUCCESS' | 'FAILED'
+
+export interface GenerateStatusVO {
+  id: number
+  status: GenerateStatus
+  errorMsg: string
+  updateTime: string
+}
+
+export interface StudyPlanVO {
+  id: number
+  title: string
+  goal: string
+  topic: string
+  kbId: number
+  kbName: string
+  startDate: string | null
+  endDate: string | null
+  dailyMinutes: number
+  currentLevel: string
+  expectedOutcome: string
+  status: number
+  generateStatus: GenerateStatus
+  generateError: string
+  progress: number
+  aiAdvice: string
+  taskCount: number
+  completedCount: number
+  createTime: string
+  updateTime: string
+}
+
+export interface StudyPlanCreateDTO {
+  title: string
+  goal?: string
+  topic?: string
+  kbId?: number
+  startDate?: string | null
+  endDate?: string | null
+  dailyMinutes?: number
+  currentLevel?: string
+  expectedOutcome?: string
+}
+
+export interface StudyPlanUpdateDTO extends StudyPlanCreateDTO {
+  status?: number
+}
+
+export interface StudyPlanProgressVO {
+  planId: number
+  total: number
+  completed: number
+  progress: number
+  status: number
+}
+
+export interface StudyTaskVO {
+  id: number
+  planId: number
+  stage: string
+  taskDate: string | null
+  title: string
+  content: string
+  focus: string
+  recommendedContent: string
+  durationMin: number
+  stageQuiz: boolean
+  status: number
+  sortOrder: number
+}
+
+export interface StudyTaskUpdateDTO {
+  title?: string
+  content?: string
+  focus?: string
+  recommendedContent?: string
+  stage?: string
+  taskDate?: string | null
+  durationMin?: number
+  stageQuiz?: number
+  sortOrder?: number
+}
+
+export interface QuizQuestionVO {
+  id: number
+  type: number
+  difficulty: number
+  stem: string
+  options: string[]
+  knowledgePoint: string
+  sourceDocId: number
+  sourceDocTitle: string
+  sourceContent: string | null
+  sortOrder: number
+  answer: string | null
+  analysis: string | null
+  userAnswer: string | null
+  isCorrect: number | null
+  score: number | null
+  scoreBasis: string | null
+}
+
+export interface QuizListItemVO {
+  id: number
+  title: string
+  topic: string
+  kbId: number
+  kbName: string
+  difficulty: number
+  questionCount: number
+  status: number
+  generateStatus: GenerateStatus
+  score: number
+  createTime: string
+}
+
+export interface QuizDetailVO {
+  id: number
+  title: string
+  topic: string
+  kbId: number
+  kbName: string
+  difficulty: number
+  questionTypes: number[]
+  questionCount: number
+  status: number
+  generateStatus: GenerateStatus
+  generateError: string
+  score: number
+  createTime: string
+  questions: QuizQuestionVO[]
+}
+
+export interface QuizResultVO {
+  quizId: number
+  title: string
+  score: number
+  questionCount: number
+  correctCount: number
+  status: number
+  questions: QuizQuestionVO[]
+}
+
+export interface WrongAnswerVO {
+  questionId: number
+  quizId: number
+  quizTitle: string
+  type: number
+  stem: string
+  options: string[]
+  answer: string
+  analysis: string
+  userAnswer: string
+  isCorrect: number
+  score: number
+  scoreBasis: string
+  knowledgePoint: string
+  sourceDocId: number
+  sourceDocTitle: string
+  sourceContent: string
+  createTime: string
+}
+
+export interface QuizGenerateDTO {
+  kbId: number
+  topic?: string
+  title?: string
+  questionCount?: number
+  difficulty?: number
+  questionTypes: number[]
+}
+
+export interface QuizSubmitDTO {
+  answers: { questionId: number; answer: string }[]
+}

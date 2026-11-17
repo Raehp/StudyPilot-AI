@@ -55,10 +55,17 @@ public class DashScopeClient {
     }
 
     /**
-     * 发起一次 JSON 结构化对话，返回模型输出的 JSON 字符串。
+     * 发起一次 JSON 结构化对话，返回模型输出的 JSON 字符串（默认 bizType=2 分析）。
      * 失败抛出脱敏 BusinessException；每次调用（含失败）记录 log_ai_call，不含密钥。
      */
     public String chatJson(Long userId, String systemPrompt, String userPrompt) {
+        return chatJson(userId, BIZ_TYPE_ANALYSIS, systemPrompt, userPrompt);
+    }
+
+    /**
+     * 发起一次 JSON 结构化对话并指定业务类型（1摘要 2分析 3RAG 4计划 5出题 6判分）。
+     */
+    public String chatJson(Long userId, int bizType, String systemPrompt, String userPrompt) {
         if (props.getApiKey() == null || props.getApiKey().isBlank()) {
             throw new BusinessException(ResultCode.AI_SERVICE_ERROR,
                     "AI 服务未配置 API Key，请设置环境变量 DASHSCOPE_API_KEY");
@@ -100,10 +107,10 @@ public class DashScopeClient {
             String content = resp == null ? "" : resp.path("choices").path(0)
                     .path("message").path("content").asText("");
             if (content.isBlank()) {
-                recordCall(userId, promptTokens, completionTokens, cost, 1, "模型返回空内容");
+                recordCall(userId, bizType, promptTokens, completionTokens, cost, 1, "模型返回空内容");
                 throw new BusinessException(ResultCode.AI_SERVICE_ERROR, "AI 返回结果为空，请重试");
             }
-            recordCall(userId, promptTokens, completionTokens, cost, 0, "");
+            recordCall(userId, bizType, promptTokens, completionTokens, cost, 0, "");
             log.info("DashScope 调用成功 model={} latencyMs={} promptTokens={} completionTokens={}",
                     props.getModel(), cost, promptTokens, completionTokens);
             return content;
@@ -122,7 +129,7 @@ public class DashScopeClient {
             } else {
                 message = "AI 请求被拒绝（HTTP " + http + "），请稍后重试";
             }
-            recordCall(userId, promptTokens, completionTokens, cost, logStatus, message);
+            recordCall(userId, bizType, promptTokens, completionTokens, cost, logStatus, message);
             log.warn("DashScope 调用失败 model={} http={} latencyMs={} body={}",
                     props.getModel(), http, cost, truncate(e.getResponseBodyAsString(), 300));
             throw new BusinessException(ResultCode.AI_SERVICE_ERROR, message);
@@ -137,7 +144,7 @@ public class DashScopeClient {
                 }
             }
             String message = timeout ? "AI 服务响应超时，请稍后重试" : "AI 服务网络异常，请稍后重试";
-            recordCall(userId, promptTokens, completionTokens, cost, timeout ? 2 : 1, message);
+            recordCall(userId, bizType, promptTokens, completionTokens, cost, timeout ? 2 : 1, message);
             log.warn("DashScope 网络异常 model={} latencyMs={} timeout={} cause={}",
                     props.getModel(), cost, timeout, e.getMessage());
             throw new BusinessException(ResultCode.AI_SERVICE_ERROR, message);
@@ -146,12 +153,12 @@ public class DashScopeClient {
         }
     }
 
-    private void recordCall(Long userId, int promptTokens, int completionTokens,
+    private void recordCall(Long userId, int bizType, int promptTokens, int completionTokens,
                             long cost, int status, String errorMsg) {
         try {
             LogAiCall record = new LogAiCall();
             record.setUserId(userId);
-            record.setBizType(BIZ_TYPE_ANALYSIS);
+            record.setBizType(bizType);
             record.setModel(props.getModel());
             record.setPromptTokens(promptTokens);
             record.setCompletionTokens(completionTokens);

@@ -97,6 +97,23 @@ studypilot:
     connect-timeout-ms: 10000
     read-timeout-ms: 60000
     max-concurrent: 2
+  # M6 AI 学习计划（生成复用上方 qwen-plus；可结合知识库真实文档检索）
+  plan:
+    retrieval-top-k: 6
+    retrieval-min-score: 0.45
+    max-context-chars: 6000
+    max-tasks: 60
+    max-generation-ms: 180000
+  # M6 AI 智能出题（生成复用上方 qwen-plus；基于知识库真实内容出题与简答判分）
+  quiz:
+    retrieval-top-k: 8
+    retrieval-min-score: 0.45
+    max-context-chars: 8000
+    min-questions: 1
+    max-questions: 20
+    default-question-count: 5
+    short-answer-pass-score: 60
+    max-generation-ms: 180000
 
 logging:
   level:
