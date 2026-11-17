@@ -50,6 +50,16 @@ const http = {
   },
   delete<T>(url: string): Promise<T> {
     return service.delete(url) as Promise<T>
+  },
+  upload<T>(url: string, formData: FormData, onProgress?: (percent: number) => void): Promise<T> {
+    return service.post(url, formData, {
+      timeout: 120000,
+      onUploadProgress: (event) => {
+        if (onProgress && event.total) {
+          onProgress(Math.round((event.loaded / event.total) * 100))
+        }
+      }
+    }) as Promise<T>
   }
 }
 

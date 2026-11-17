@@ -21,6 +21,9 @@ logs/
 *.log
 npm-debug.log*
 
+# ---- Local file storage (uploads / parsed results) ----
+data/
+
 # ---- IDE / Editor ----
 .idea/
 .vscode/

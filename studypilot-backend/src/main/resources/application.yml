@@ -31,8 +31,8 @@ spring:
     time-zone: Asia/Shanghai
   servlet:
     multipart:
-      max-file-size: 20MB
-      max-request-size: 25MB
+      max-file-size: 30MB
+      max-request-size: 35MB
 
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
@@ -61,6 +61,12 @@ jwt:
   # 生产环境必须通过 JWT_SECRET 环境变量覆盖
   secret: ${JWT_SECRET:StudyPilot-AI-Dev-Secret-Key-Change-In-Production-2026}
   expire-hours: 168
+
+# M2 文件存储与上传限制（集中配置，目录可用 STORAGE_DIR 环境变量覆盖）
+studypilot:
+  storage:
+    upload-dir: ${STORAGE_DIR:./data/uploads}
+    max-size-mb: 30
 
 logging:
   level:

@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS `biz_knowledge_base` (
 -- ③ 文档表
 CREATE TABLE IF NOT EXISTS `biz_document` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `kb_id` bigint unsigned NOT NULL COMMENT '所属知识库',
+  `kb_id` bigint unsigned NOT NULL COMMENT '所属知识库（0=未归属文档池）',
   `user_id` bigint unsigned NOT NULL COMMENT '归属用户（权限校验）',
   `title` varchar(128) NOT NULL DEFAULT '' COMMENT '论文标题',
   `file_name` varchar(255) NOT NULL COMMENT '原始文件名',
@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS `biz_document` (
   `file_size` bigint NOT NULL DEFAULT 0 COMMENT '文件字节数',
   `page_count` int NOT NULL DEFAULT 0 COMMENT 'PDF页数',
   `char_count` int NOT NULL DEFAULT 0 COMMENT '提取字符数',
+  `need_ocr` tinyint(1) NOT NULL DEFAULT 0 COMMENT '扫描版PDF需OCR：0-否 1-是',
   `status` tinyint NOT NULL DEFAULT 0 COMMENT '0-UPLOADED 1-PARSING 2-CHUNKING 3-EMBEDDING 4-READY 5-FAILED',
   `error_msg` varchar(500) NOT NULL DEFAULT '' COMMENT '失败原因',
   `summary` text COMMENT 'AI摘要',
