@@ -102,4 +102,14 @@ logging:
   level:
     com.studypilot: info
 
-# M5 预留：RAG 问答将复用 M4 切片与向量检索能力
+  # M5 RAG 多轮问答（检索复用 M4 向量能力；生成复用上方 qwen-plus，流式）
+  rag:
+    top-k: 5
+    min-score: 0.5
+    max-question-chars: 2000
+    max-history-messages: 10
+    max-history-chars: 4000
+    max-context-chars: 8000
+    sse-timeout-ms: 180000
+    max-generation-ms: 180000
+    stream-idle-timeout-ms: 60000

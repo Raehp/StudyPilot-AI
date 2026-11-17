@@ -141,6 +141,13 @@ public class DocumentVectorService {
                         .eq(DocumentChunk::getEmbeddingModel, embeddingClient.getModel())
                         .eq(DocumentChunk::getEmbeddingVersion, embeddingClient.getVersion())
                         .eq(DocumentChunk::getEmbeddingDimension, embeddingClient.getDimension()));
+        // 排除已删除文档的切片（selectBatchIds 遵循逻辑删除过滤）
+        if (!candidates.isEmpty()) {
+            List<Long> candidateDocIds = candidates.stream().map(DocumentChunk::getDocId).distinct().toList();
+            java.util.Set<Long> liveDocIds = documentMapper.selectBatchIds(candidateDocIds).stream()
+                    .map(Document::getId).collect(Collectors.toSet());
+            candidates = candidates.stream().filter(c -> liveDocIds.contains(c.getDocId())).toList();
+        }
         List<VectorSearchResultVO> scored = new ArrayList<>();
         int skipped = 0;
         for (DocumentChunk chunk : candidates) {

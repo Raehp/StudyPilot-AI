@@ -161,3 +161,43 @@ export interface PaperAnalysisVO {
   createTime: string
   updateTime: string
 }
+
+export type MessageStatus = 'GENERATING' | 'SUCCESS' | 'FAILED' | 'STOPPED'
+
+export interface CitationVO {
+  documentId: number
+  documentName: string
+  chunkId: number
+  chunkUid: string
+  pageNum: number | null
+  originalContent: string
+  similarityScore: number
+}
+
+export interface ConversationVO {
+  id: number
+  kbId: number
+  kbName: string
+  title: string
+  createTime: string
+  updateTime: string
+}
+
+export interface ChatMessageVO {
+  id: number
+  conversationId: number
+  role: 'user' | 'assistant'
+  content: string
+  citations: CitationVO[]
+  tokenCount: number
+  status: MessageStatus
+  errorMsg: string
+  createTime: string
+}
+
+export interface ChatStreamMeta {
+  userMessageId: number
+  assistantMessageId: number
+  retrievalCount: number
+  citations: CitationVO[]
+}
