@@ -30,6 +30,11 @@ export interface RegisterDTO {
   nickname?: string
 }
 
+export interface ChangePasswordDTO {
+  oldPassword: string
+  newPassword: string
+}
+
 export interface PageResult<T> {
   records: T[]
   total: number

@@ -38,5 +38,12 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
-  return { token, userInfo, isLoggedIn, login, register, loadUser, logout }
+  // 仅清除本地会话（用于修改密码后后端已失效令牌的场景，避免再调用 logout 触发 401）
+  function clearSession() {
+    token.value = ''
+    userInfo.value = null
+    clearToken()
+  }
+
+  return { token, userInfo, isLoggedIn, login, register, loadUser, logout, clearSession }
 })

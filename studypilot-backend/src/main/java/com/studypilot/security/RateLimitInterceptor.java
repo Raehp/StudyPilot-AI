@@ -44,7 +44,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         String path = request.getRequestURI();
         String bucket;
         int limit;
-        if ("/api/auth/login".equals(path) || "/api/auth/register".equals(path)) {
+        if ("/api/auth/login".equals(path) || "/api/auth/register".equals(path)
+                || "/api/users/me/password".equals(path)) {
             bucket = "auth";
             limit = properties.getAuthLimit();
         } else if ("/api/documents/upload".equals(path)) {

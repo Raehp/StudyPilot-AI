@@ -911,6 +911,7 @@ function formatSize(bytes: number) {
 .doc-panel {
   padding: 20px;
   min-height: 480px;
+  min-width: 0;
 }
 
 .doc-header {
@@ -978,6 +979,13 @@ function formatSize(bytes: number) {
   --el-table-border-color: var(--sp-border);
   --el-table-text-color: var(--sp-text);
   --el-table-header-text-color: var(--sp-text-2);
+}
+
+/* 表格背景透明，横向滚动时固定列需磨砂承托，否则透出底下滚过的列文字 */
+.doc-table:not(.is-scrolling-none) :deep(.el-table-fixed-column--right) {
+  background: var(--sp-surface);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .doc-cell-title {

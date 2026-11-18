@@ -2,6 +2,7 @@ package com.studypilot.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.studypilot.common.ResultCode;
+import com.studypilot.dto.ChangePasswordDTO;
 import com.studypilot.dto.LoginDTO;
 import com.studypilot.dto.RegisterDTO;
 import com.studypilot.entity.SysUser;
@@ -67,6 +68,27 @@ public class UserServiceImpl implements UserService {
     @Override
     public void logout() {
         stringRedisTemplate.delete(AuthConstants.tokenKey(UserContext.getUserId()));
+    }
+
+    @Override
+    public void changePassword(ChangePasswordDTO dto) {
+        Long uid = UserContext.getUserId();
+        SysUser user = sysUserMapper.selectById(uid);
+        if (user == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
+        }
+        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "原密码错误");
+        }
+        if (passwordEncoder.matches(dto.getNewPassword(), user.getPassword())) {
+            throw new BusinessException(ResultCode.BAD_REQUEST, "新密码不能与原密码相同");
+        }
+        SysUser update = new SysUser();
+        update.setId(uid);
+        update.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        sysUserMapper.updateById(update);
+        // 修改成功即失效当前会话令牌，前端据此自动注销并跳转登录页
+        stringRedisTemplate.delete(AuthConstants.tokenKey(uid));
     }
 
     @Override

@@ -17,6 +17,12 @@ const router = createRouter({
       meta: { title: '注册', public: true }
     },
     {
+      path: '/glass-showcase',
+      name: 'glass-showcase',
+      component: () => import('@/components/GlassShowcase.vue'),
+      meta: { title: 'Liquid Glass 演示', public: true }
+    },
+    {
       path: '/',
       component: () => import('@/layouts/MainLayout.vue'),
       children: [

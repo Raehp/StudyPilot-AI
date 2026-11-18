@@ -131,7 +131,7 @@ const items: { path: string; label: string; icon: Component }[] = [
   gap: 7px;
   padding: 12px 8px 0;
   font-size: 11px;
-  color: var(--sp-text-3);
+  color: var(--sp-text-2);
 }
 
 .dot {

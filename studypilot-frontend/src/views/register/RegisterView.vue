@@ -1,5 +1,6 @@
 <template>
   <div class="auth-page">
+    <div class="auth-bg" aria-hidden="true"></div>
     <div class="auth-card glass">
       <div class="auth-logo">
         <div class="logo-icon">
@@ -40,15 +41,21 @@
             :prefix-icon="Lock"
           />
         </el-form-item>
-        <el-button
-          type="primary"
-          size="large"
+        <SpecularButton
           class="submit-btn"
-          :loading="loading"
+          size="md"
+          :radius="14"
+          :tint="appStore.theme === 'dark' ? '#0a84ff' : '#ffffff'"
+          :tint-opacity="appStore.theme === 'dark' ? 0.16 : 0.55"
+          :text-color="appStore.theme === 'dark' ? '#f5f5f7' : '#1c1c1e'"
+          :line-color="appStore.theme === 'dark' ? '#ffffff' : '#0a84ff'"
+          :base-color="appStore.theme === 'dark' ? '#525252' : '#9a9aa2'"
+          :idle-intensity="0.55"
+          :disabled="loading"
           @click="onSubmit"
         >
-          注册并进入
-        </el-button>
+          {{ loading ? '注册中…' : '注册并进入' }}
+        </SpecularButton>
       </el-form>
 
       <div class="auth-switch">
@@ -65,9 +72,12 @@ import { useRouter } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { User, Lock, Avatar } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
+import { useAppStore } from '@/stores/app'
+import SpecularButton from '@/components/common/SpecularButton.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
+const appStore = useAppStore()
 
 const formRef = ref<FormInstance>()
 const loading = ref(false)

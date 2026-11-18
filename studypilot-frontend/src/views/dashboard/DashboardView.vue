@@ -1,6 +1,7 @@
 <template>
   <div class="dashboard">
-    <div class="welcome glass">
+    <div class="welcome glass" data-lens-blur-scale="0.05">
+      <div class="card-art art-line" aria-hidden="true"></div>
       <div class="welcome-text">
         <h2>你好，{{ userStore.userInfo?.nickname }} 👋</h2>
         <p>

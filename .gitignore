@@ -21,6 +21,9 @@ logs/
 *.log
 npm-debug.log*
 
+# ---- Local verification scratch (screenshots / probe scripts / reports) ----
+.verify/
+
 # ---- Local file storage (uploads / parsed results) ----
 data/
 
